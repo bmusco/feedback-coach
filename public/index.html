@@ -86,6 +86,11 @@
       <button class="resume-btn hidden" id="resume-btn" onclick="resumeSession()">
         Resume Previous Session
       </button>
+
+      <button class="clear-ctx-btn" id="clear-ctx-btn" onclick="clearFromWelcome()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1M6 7v5M10 7v5"/><path d="M3 4l1 9a1 1 0 001 1h6a1 1 0 001-1l1-9"/></svg>
+        Clear History
+      </button>
     </div>
   </div>
 
@@ -99,9 +104,14 @@
         <span class="session-badge" id="session-badge">Full Session</span>
         <span class="status-text" id="header-status"></span>
       </div>
-      <button class="header-btn" onclick="newSession()" title="New session">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
-      </button>
+      <div class="header-actions">
+        <button class="header-btn" onclick="clearSession()" title="Clear session history">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1M6 7v5M10 7v5"/><path d="M3 4l1 9a1 1 0 001 1h6a1 1 0 001-1l1-9"/></svg>
+        </button>
+        <button class="header-btn" onclick="newSession()" title="New session">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
+        </button>
+      </div>
     </header>
 
     <div class="messages" id="messages"></div>

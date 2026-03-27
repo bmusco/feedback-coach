@@ -455,6 +455,23 @@ function goBack() {
   $welcome.classList.remove('hidden');
 }
 
+function clearSession() {
+  if (isGenerating) {
+    ws.send(JSON.stringify({ action: 'chat-stop' }));
+  }
+  if (!confirm('Clear session history and context? This cannot be undone.')) return;
+  ws.send(JSON.stringify({ action: 'new-session' }));
+  $messages.innerHTML = '';
+  currentOutput = '';
+  currentBubble = null;
+  thinkingText = '';
+  removeThinkingBubble();
+  isGenerating = false;
+  updateInputState();
+  $headerStatus.textContent = 'Session cleared';
+  setTimeout(() => { $headerStatus.textContent = ''; }, 3000);
+}
+
 function newSession() {
   if (isGenerating) {
     ws.send(JSON.stringify({ action: 'chat-stop' }));
@@ -478,6 +495,14 @@ window.startMicro = startMicro;
 window.startDemo = startDemo;
 window.resumeSession = resumeSession;
 window.goBack = goBack;
+function clearFromWelcome() {
+  if (!confirm('Clear all session history and context? This cannot be undone.')) return;
+  ws.send(JSON.stringify({ action: 'new-session' }));
+  $resumeBtn.classList.add('hidden');
+}
+
+window.clearFromWelcome = clearFromWelcome;
+window.clearSession = clearSession;
 window.newSession = newSession;
 window.sendMessage = sendMessage;
 window.stopGeneration = stopGeneration;
