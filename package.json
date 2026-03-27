@@ -1,0 +1,13 @@
+{
+  "name": "feedback-coach",
+  "version": "1.0.0",
+  "description": "AI-powered career feedback coaching UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "ws": "^8.19.0"
+  }
+}

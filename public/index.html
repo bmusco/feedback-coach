@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback Coach</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+  <!-- Welcome Screen -->
+  <div id="welcome" class="view welcome">
+    <div class="welcome-inner">
+      <div class="welcome-logo">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="20" stroke="#1a73e8" stroke-width="2"/>
+          <circle cx="24" cy="24" r="12" stroke="#1a73e8" stroke-width="1.5" opacity="0.6"/>
+          <circle cx="24" cy="24" r="4" fill="#1a73e8"/>
+          <line x1="24" y1="2" x2="24" y2="10" stroke="#1a73e8" stroke-width="1.5"/>
+          <line x1="24" y1="38" x2="24" y2="46" stroke="#1a73e8" stroke-width="1.5"/>
+          <line x1="2" y1="24" x2="10" y2="24" stroke="#1a73e8" stroke-width="1.5"/>
+          <line x1="38" y1="24" x2="46" y2="24" stroke="#1a73e8" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <h1>Feedback Coach</h1>
+      <p class="tagline">Understand how you're perceived. Identify growth areas. Build your action plan.</p>
+
+      <div class="mode-cards">
+        <div class="mode-card" id="card-full">
+          <div class="mode-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="1.5">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1"/>
+              <line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>
+            </svg>
+          </div>
+          <h3>Full Session</h3>
+          <p>Deep analysis of manager signals, cross-functional interactions, predicted review ratings, and action plan.</p>
+          <div class="period-buttons">
+            <button class="period-btn active" data-period="2 weeks">Last 2 weeks</button>
+            <button class="period-btn" data-period="1 month">Last month</button>
+            <button class="period-btn" data-period="1 quarter">Last quarter</button>
+            <button class="period-btn" data-period="custom" id="custom-period-btn">Custom</button>
+          </div>
+          <div class="custom-date-range hidden" id="custom-date-range">
+            <div class="date-inputs">
+              <label>
+                <span>From</span>
+                <input type="date" id="date-from">
+              </label>
+              <label>
+                <span>To</span>
+                <input type="date" id="date-to">
+              </label>
+            </div>
+          </div>
+          <button class="start-btn" onclick="startFull()">Start Full Session</button>
+        </div>
+
+        <div class="mode-card" id="card-micro" onclick="startMicro()">
+          <div class="mode-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="1.5">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7v5l3 3"/>
+            </svg>
+          </div>
+          <h3>Micro Check</h3>
+          <p>Quick 7-day pulse with 3-5 bullet insights, action item follow-up, and flags for anything needing attention.</p>
+          <span class="mode-badge">~5 min</span>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <button class="demo-btn" onclick="startDemo()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Run Demo
+          <span class="demo-hint">Experience the full flow with fake data (Sarah Chen persona)</span>
+        </button>
+      </div>
+
+      <button class="resume-btn hidden" id="resume-btn" onclick="resumeSession()">
+        Resume Previous Session
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat Screen -->
+  <div id="chat-view" class="view chat-view hidden">
+    <header class="chat-header">
+      <button class="header-btn back-btn" onclick="goBack()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2L4 8l6 6"/></svg>
+      </button>
+      <div class="header-center">
+        <span class="session-badge" id="session-badge">Full Session</span>
+        <span class="status-text" id="header-status"></span>
+      </div>
+      <button class="header-btn" onclick="newSession()" title="New session">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
+      </button>
+    </header>
+
+    <div class="messages" id="messages"></div>
+
+    <!-- Tool activity bar -->
+    <div class="tool-bar hidden" id="tool-bar">
+      <div class="tool-spinner"></div>
+      <span id="tool-label">Working...</span>
+    </div>
+
+    <div class="input-area" id="input-area">
+      <textarea id="chat-input" placeholder="Type your response..." rows="1"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+      <button class="stop-btn hidden" id="stop-btn" onclick="stopGeneration()">Stop</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
