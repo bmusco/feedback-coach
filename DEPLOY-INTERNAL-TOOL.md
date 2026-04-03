@@ -108,4 +108,5 @@ make deploy
 1. Frontend loads but chat never starts: confirm `API_BASE` and `WS_BASE` point at the live API hostname
 2. Browser refresh 404s: confirm CloudFront custom error responses or uploaded `404.html`
 3. ECS task fails immediately: verify Claude auth files are available in the container
-4. Stale UI after deploy: invalidate CloudFront or hard refresh after `make deploy-frontend`
+4. `make deploy-api` fails immediately: verify the ECR repo exists in `us-east-1`, the ECS service exists in `us-east-2`, and `.env` includes `ECS_REGION=us-east-2`
+5. Stale UI after deploy: invalidate CloudFront or hard refresh after `make deploy-frontend`
