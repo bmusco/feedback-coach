@@ -8,6 +8,26 @@ let currentBubble = null;
 let thinkingText = '';
 let thinkingEl = null;
 
+function getConfiguredWsBase() {
+  const explicitWsBase = window.FEEDBACK_COACH_WS_BASE;
+  if (explicitWsBase) {
+    return explicitWsBase.replace(/\/$/, '');
+  }
+
+  const apiBase = window.FEEDBACK_COACH_API_BASE;
+  if (apiBase) {
+    const url = new URL(apiBase);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    url.pathname = '';
+    url.search = '';
+    url.hash = '';
+    return url.toString().replace(/\/$/, '');
+  }
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${location.host}`;
+}
+
 // ── DOM refs ──────────────────────────────────────────────
 const $welcome = document.getElementById('welcome');
 const $chat = document.getElementById('chat-view');
@@ -23,8 +43,7 @@ const $resumeBtn = document.getElementById('resume-btn');
 
 // ── WebSocket ─────────────────────────────────────────────
 function connect() {
-  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ws = new WebSocket(`${proto}//${location.host}`);
+  ws = new WebSocket(getConfiguredWsBase());
 
   ws.onopen = () => {};
 
