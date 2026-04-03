@@ -1,0 +1,101 @@
+data "aws_iam_policy_document" "ecs-assume-role-policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "task-policy" {
+  statement {
+    sid = "BedrockInvoke"
+    actions = [
+      "bedrock:InvokeModel",
+      "bedrock:InvokeModelWithResponseStream",
+      "bedrock:ListFoundationModels",
+      "sts:GetCallerIdentity"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "CloudWatchLogs"
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "SSMMessages"
+    actions = [
+      "ssm:StartSession",
+      "ssm:TerminateSession",
+      "ssm:ResumeSession",
+      "ssm:DescribeSessions",
+      "ssm:GetConnectionStatus",
+      "ssmmessages:CreateControlChannel",
+      "ssmmessages:CreateDataChannel",
+      "ssmmessages:OpenControlChannel",
+      "ssmmessages:OpenDataChannel"
+    ]
+    resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "task-execution-policy" {
+  statement {
+    actions = [
+      "ecr:GetAuthorizationToken",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "GetSecrets"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_secretsmanager_secret.claude-config.arn]
+  }
+}
+
+resource "aws_iam_role" "task-role" {
+  name               = "${var.token}-container-role-${var.service-name}"
+  description        = "IAM role for ${var.service-name} ECS task"
+  assume_role_policy = data.aws_iam_policy_document.ecs-assume-role-policy.json
+}
+
+resource "aws_iam_role" "task-execution-role" {
+  name               = "${var.token}-task-execution-role-${var.service-name}"
+  description        = "IAM role for ${var.service-name} ECS task execution"
+  assume_role_policy = data.aws_iam_policy_document.ecs-assume-role-policy.json
+}
+
+resource "aws_iam_policy" "task-policy" {
+  name   = "${var.token}-container-policy-${var.service-name}"
+  policy = data.aws_iam_policy_document.task-policy.json
+}
+
+resource "aws_iam_policy" "task-execution-policy" {
+  name   = "${var.token}-container-execution-policy-${var.service-name}"
+  policy = data.aws_iam_policy_document.task-execution-policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "task-role-attach" {
+  role       = aws_iam_role.task-role.name
+  policy_arn = aws_iam_policy.task-policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "task-execution-role-attach" {
+  role       = aws_iam_role.task-execution-role.name
+  policy_arn = aws_iam_policy.task-execution-policy.arn
+}

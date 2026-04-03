@@ -26,4 +26,8 @@ EXPOSE 3333
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD curl -f http://localhost:3333/api/health || exit 1
 
+COPY --chown=appuser:appuser scripts/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["node", "server.js"]
