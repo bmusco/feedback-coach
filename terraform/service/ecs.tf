@@ -59,6 +59,18 @@ resource "aws_ecs_task_definition" "service" {
         {
           name      = "SLACK_CLIENT_SECRET_OAUTH"
           valueFrom = "${aws_secretsmanager_secret.oauth-credentials.arn}:SLACK_CLIENT_SECRET_OAUTH::"
+        },
+        {
+          name      = "REQUIRE_GOOGLE_SIGNIN"
+          valueFrom = "${aws_secretsmanager_secret.oauth-credentials.arn}:REQUIRE_GOOGLE_SIGNIN::"
+        },
+        {
+          name      = "ALLOWED_EMAIL_DOMAIN"
+          valueFrom = "${aws_secretsmanager_secret.oauth-credentials.arn}:ALLOWED_EMAIL_DOMAIN::"
+        },
+        {
+          name      = "ALLOWED_USER_EMAILS"
+          valueFrom = "${aws_secretsmanager_secret.oauth-credentials.arn}:ALLOWED_USER_EMAILS::"
         }
       ]
       logConfiguration = {
