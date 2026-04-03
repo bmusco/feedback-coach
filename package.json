@@ -4,7 +4,8 @@
   "description": "AI-powered career feedback coaching UI",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "docker:build": "docker build --platform linux/amd64 -t feedback-coach:latest ."
   },
   "dependencies": {
     "express": "^5.2.1",
