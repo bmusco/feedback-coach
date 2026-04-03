@@ -43,6 +43,14 @@ const SLACK_CLIENT_SECRET_OAUTH = process.env.SLACK_CLIENT_SECRET_OAUTH || '';
 const ATLASSIAN_SITE = process.env.ATLASSIAN_SITE || 'https://cmtelematics.atlassian.net';
 const GOOGLE_MCP_URL = process.env.GOOGLE_MCP_URL || 'https://portal.int-tools.cmtelematics.com/google-workspace-mcp/mcp';
 const SLACK_MCP_URL = process.env.SLACK_MCP_URL || 'https://portal.int-tools.cmtelematics.com/slack-mcp/mcp';
+const REQUIRE_GOOGLE_SIGNIN = /^(1|true|yes)$/i.test(process.env.REQUIRE_GOOGLE_SIGNIN || '');
+const ALLOWED_EMAIL_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || '').trim().toLowerCase();
+const ALLOWED_USER_EMAILS = new Set(
+  (process.env.ALLOWED_USER_EMAILS || '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
+);
 
 const DIRECT_OAUTH_PROVIDERS = {
   'google-workspace': {
@@ -111,6 +119,14 @@ function decryptToken(value) {
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function requiresIdentityGate() {
+  return REQUIRE_GOOGLE_SIGNIN || !!ALLOWED_EMAIL_DOMAIN || ALLOWED_USER_EMAILS.size > 0;
 }
 
 function copyIfExists(src, dest) {
@@ -445,6 +461,108 @@ async function validateGoogleIdentity(token) {
   };
 }
 
+function cacheGoogleIdentity(session, identity) {
+  if (!session) return;
+  session.identity = {
+    ...(session.identity || {}),
+    email: normalizeEmail(identity?.email),
+    name: identity?.name || null,
+    updatedAt: Date.now(),
+  };
+  saveUserTokens();
+}
+
+async function getSessionGoogleIdentity(session) {
+  const token = session?.tokens?.['google-workspace']?.accessToken
+    ? decryptToken(session.tokens['google-workspace'].accessToken)
+    : null;
+  if (!token) return { email: '', name: null };
+
+  const cachedEmail = normalizeEmail(session?.identity?.email);
+  if (cachedEmail) {
+    return {
+      email: cachedEmail,
+      name: session?.identity?.name || null,
+    };
+  }
+
+  const identity = await validateGoogleIdentity(token);
+  if (!identity.ok) return { email: '', name: null };
+
+  cacheGoogleIdentity(session, identity);
+  return {
+    email: normalizeEmail(identity.email),
+    name: identity.name || null,
+  };
+}
+
+async function getAccessStatus(session) {
+  const identityRequired = requiresIdentityGate();
+  const identity = identityRequired ? await getSessionGoogleIdentity(session) : { email: '', name: null };
+  const email = normalizeEmail(identity.email);
+
+  if (identityRequired && !email) {
+    return {
+      allowed: false,
+      code: 'google_signin_required',
+      message: 'Sign in with your Google Workspace account to use Feedback Coach.',
+      email: null,
+      requireGoogleSignin: true,
+      allowedDomain: ALLOWED_EMAIL_DOMAIN || null,
+      hasAllowlist: ALLOWED_USER_EMAILS.size > 0,
+    };
+  }
+
+  if (ALLOWED_EMAIL_DOMAIN && !email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)) {
+    return {
+      allowed: false,
+      code: 'domain_not_allowed',
+      message: `Feedback Coach is limited to ${ALLOWED_EMAIL_DOMAIN} accounts.`,
+      email: email || null,
+      requireGoogleSignin: true,
+      allowedDomain: ALLOWED_EMAIL_DOMAIN,
+      hasAllowlist: ALLOWED_USER_EMAILS.size > 0,
+    };
+  }
+
+  if (ALLOWED_USER_EMAILS.size > 0 && !ALLOWED_USER_EMAILS.has(email)) {
+    return {
+      allowed: false,
+      code: 'email_not_allowlisted',
+      message: 'This pilot is currently limited to an approved user list.',
+      email: email || null,
+      requireGoogleSignin: true,
+      allowedDomain: ALLOWED_EMAIL_DOMAIN || null,
+      hasAllowlist: true,
+    };
+  }
+
+  return {
+    allowed: true,
+    code: 'allowed',
+    message: '',
+    email: email || null,
+    requireGoogleSignin: identityRequired,
+    allowedDomain: ALLOWED_EMAIL_DOMAIN || null,
+    hasAllowlist: ALLOWED_USER_EMAILS.size > 0,
+  };
+}
+
+async function requireAllowedAccess(req, res, next) {
+  try {
+    const access = await getAccessStatus(getOrCreateSession(req));
+    req.accessStatus = access;
+    if (access.allowed) return next();
+    return res.status(access.code === 'google_signin_required' ? 401 : 403).json({
+      ok: false,
+      error: access.message,
+      access,
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message || 'Access check failed' });
+  }
+}
+
 async function validateSlackIdentity(token) {
   const headers = { Authorization: `Bearer ${token}` };
   const authResp = await fetch('https://slack.com/api/auth.test', { headers });
@@ -512,6 +630,16 @@ app.get('/api/auth/:provider/start', async (req, res) => {
   const provider = req.params.provider;
   const conf = DIRECT_OAUTH_PROVIDERS[provider];
   if (!conf) return res.status(400).json({ ok: false, error: 'Unknown provider' });
+  if (provider !== 'google-workspace') {
+    const access = await getAccessStatus(getOrCreateSession(req));
+    if (!access.allowed) {
+      return res.status(access.code === 'google_signin_required' ? 401 : 403).json({
+        ok: false,
+        error: access.message,
+        access,
+      });
+    }
+  }
   if (!conf.clientId || !conf.clientSecret) {
     return res.json({ ok: false, error: `${conf.name} OAuth is not configured on the server` });
   }
@@ -557,6 +685,10 @@ app.get('/api/auth/callback', async (req, res) => {
       expiresAt: tokens.expiresIn ? Date.now() + tokens.expiresIn * 1000 : null,
       updatedAt: Date.now(),
     };
+    if (flow.provider === 'google-workspace') {
+      const identity = await validateGoogleIdentity(tokens.accessToken);
+      if (identity.ok) cacheGoogleIdentity(session, identity);
+    }
     userTokenStore.set(flow.sessionId, session);
     saveUserTokens();
     res.send(`<html><body><h2>${DIRECT_OAUTH_PROVIDERS[flow.provider].name} connected</h2><script>
@@ -571,24 +703,55 @@ app.get('/api/auth/callback', async (req, res) => {
   }
 });
 
+app.get('/api/access-status', async (req, res) => {
+  const session = getOrCreateSession(req);
+  const access = await getAccessStatus(session);
+  res.json({ ok: true, access });
+});
+
 app.get('/api/auth/:provider/status', async (req, res) => {
   const provider = req.params.provider;
   if (provider !== 'google-workspace' && provider !== 'slack') {
     return res.status(400).json({ ok: false, error: 'Unsupported provider' });
   }
+  if (provider !== 'google-workspace') {
+    const access = await getAccessStatus(getOrCreateSession(req));
+    if (!access.allowed) {
+      return res.status(access.code === 'google_signin_required' ? 401 : 403).json({
+        ok: false,
+        error: access.message,
+        access,
+      });
+    }
+  }
   const status = await getIntegrationStatus(getOrCreateSession(req));
   res.json({ ok: true, connected: !!status[provider] });
 });
 
-app.post('/api/auth/:provider/disconnect', (req, res) => {
+app.post('/api/auth/:provider/disconnect', async (req, res) => {
   const provider = req.params.provider;
   const session = getOrCreateSession(req);
+  if (provider !== 'google-workspace') {
+    try {
+      const access = await getAccessStatus(session);
+      if (!access.allowed) {
+        return res.status(access.code === 'google_signin_required' ? 401 : 403).json({
+          ok: false,
+          error: access.message,
+          access,
+        });
+      }
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message || 'Access check failed' });
+    }
+  }
   if (session.tokens?.[provider]) delete session.tokens[provider];
+  if (provider === 'google-workspace' && session.identity) delete session.identity;
   saveUserTokens();
   res.json({ ok: true });
 });
 
-app.post('/api/integrations/atlassian/credentials', async (req, res) => {
+app.post('/api/integrations/atlassian/credentials', requireAllowedAccess, async (req, res) => {
   const { email, token } = req.body || {};
   if (!email || !token) {
     return res.status(400).json({ ok: false, error: 'Email and token are required' });
@@ -604,10 +767,11 @@ app.post('/api/integrations/atlassian/credentials', async (req, res) => {
 
 app.get('/api/integrations/status', async (req, res) => {
   const status = await getIntegrationStatus(getOrCreateSession(req));
-  res.json({ ok: true, status });
+  const access = await getAccessStatus(getOrCreateSession(req));
+  res.json({ ok: true, status, access });
 });
 
-app.get('/api/integrations/validate/:provider', async (req, res) => {
+app.get('/api/integrations/validate/:provider', requireAllowedAccess, async (req, res) => {
   const provider = req.params.provider;
   const session = getOrCreateSession(req);
   try {
@@ -832,6 +996,17 @@ async function handleChat(ws, userMessage, systemPrompt) {
     saveUserTokens();
   }
 
+  const access = await getAccessStatus(ws.userSession || { tokens: {} });
+  if (!access.allowed) {
+    ws.send(JSON.stringify({
+      action: 'chat-error',
+      text: access.message,
+      access,
+    }));
+    ws.send(JSON.stringify({ action: 'chat-done' }));
+    return;
+  }
+
   const prefetch = await buildPrefetchContext(ws.userSession, userMessage);
   for (const label of prefetch.labels) {
     ws.send(JSON.stringify({ action: 'chat-status', text: label }));
@@ -948,7 +1123,8 @@ async function handleChat(ws, userMessage, systemPrompt) {
 
 app.get('/api/health', async (req, res) => {
   const status = await getIntegrationStatus(getOrCreateSession(req));
-  res.json({ ok: true, cli: CLAUDE_CLI, hasHistory: chatHistory.length > 0, integrations: status });
+  const access = await getAccessStatus(getOrCreateSession(req));
+  res.json({ ok: true, cli: CLAUDE_CLI, hasHistory: chatHistory.length > 0, integrations: status, access });
 });
 
 setInterval(() => {

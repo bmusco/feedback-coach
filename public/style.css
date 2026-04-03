@@ -51,6 +51,48 @@ body {
   text-align: center;
 }
 
+.access-notice {
+  max-width: 560px;
+  margin: 0 auto 14px;
+  text-align: left;
+  background: #fff7e8;
+  border: 1px solid #f2c97d;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.access-notice h2 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.access-notice p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.access-notice-btn {
+  flex-shrink: 0;
+  font-family: var(--font);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.access-notice-btn:hover {
+  background: var(--accent-hover);
+}
+
 .welcome-logo {
   margin-bottom: 14px;
   opacity: 0.9;
@@ -411,6 +453,13 @@ body {
   padding: 24px;
   transition: border-color var(--transition), box-shadow var(--transition);
   position: relative;
+}
+
+.mode-card.mode-disabled,
+.demo-btn.mode-disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .mode-card:hover {
@@ -1056,6 +1105,7 @@ body {
   .mode-cards { grid-template-columns: 1fr; }
   .integration-grid,
   .integration-grid-modal { grid-template-columns: 1fr; }
+  .access-notice,
   .integrations-panel-head,
   .modal-head { flex-direction: column; }
   .integration-summary-bar,

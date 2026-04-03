@@ -14,6 +14,14 @@
   <!-- Welcome Screen -->
   <div id="welcome" class="view welcome">
     <div class="welcome-inner">
+      <section class="access-notice hidden" id="access-notice" aria-live="polite">
+        <div class="access-notice-copy">
+          <h2 id="access-notice-title">Access Limited</h2>
+          <p id="access-notice-message"></p>
+        </div>
+        <button class="access-notice-btn hidden" id="access-notice-btn" onclick="openIntegrationsModal()">Connect Google Workspace</button>
+      </section>
+
       <section class="integrations-panel" aria-labelledby="integrations-title">
         <div class="integrations-panel-head">
           <div>
@@ -81,7 +89,7 @@
               </label>
             </div>
           </div>
-          <button class="start-btn" onclick="startFull()">Start Full Session</button>
+          <button class="start-btn" id="start-full-btn" onclick="startFull()">Start Full Session</button>
         </div>
 
         <div class="mode-card" id="card-micro" onclick="startMicro()">
@@ -98,7 +106,7 @@
       </div>
 
       <div class="demo-section">
-        <button class="demo-btn" onclick="startDemo()">
+        <button class="demo-btn" id="demo-btn" onclick="startDemo()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
