@@ -15,7 +15,7 @@ log "Checking AWS identity..."
 aws sts get-caller-identity --region "${AWS_REGION}" > /dev/null
 
 log "Building image: feedback-coach:${IMAGE_TAG}"
-docker build --platform linux/amd64 -t "feedback-coach:${IMAGE_TAG}" .
+docker buildx build --platform linux/amd64 --load -t "feedback-coach:${IMAGE_TAG}" .
 
 log "Tagging image for ECR..."
 docker tag "feedback-coach:${IMAGE_TAG}" "${ECR_REPO}:${IMAGE_TAG}"

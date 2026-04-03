@@ -3,3 +3,4 @@ node_modules
 *.err
 .DS_Store
 .env
+.session-home

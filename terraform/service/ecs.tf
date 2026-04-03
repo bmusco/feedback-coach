@@ -28,14 +28,37 @@ resource "aws_ecs_task_definition" "service" {
       ]
       environment = [
         { name = "PORT", value = tostring(var.container-port) },
+        { name = "CORS_ORIGIN", value = var.frontend-url },
         { name = "NODE_ENV", value = "production" },
         { name = "AWS_DEFAULT_REGION", value = var.region },
-        { name = "CLAUDE_CLI", value = "/home/appuser/.local/bin/claude" }
+        { name = "CLAUDE_CLI", value = "/home/appuser/.local/bin/claude" },
+        { name = "OAUTH_CALLBACK_URL", value = "https://${var.api-hostname}/api/auth/callback" },
+        { name = "ATLASSIAN_SITE", value = var.atlassian-site }
       ]
       secrets = [
         {
           name      = "CLAUDE_CONFIG_TAR_B64"
           valueFrom = aws_secretsmanager_secret.claude-config.arn
+        },
+        {
+          name      = "SESSION_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.oauth-credentials.arn}:SESSION_SECRET::"
+        },
+        {
+          name      = "GOOGLE_CLIENT_ID"
+          valueFrom = "${aws_secretsmanager_secret.oauth-credentials.arn}:GOOGLE_CLIENT_ID::"
+        },
+        {
+          name      = "GOOGLE_CLIENT_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.oauth-credentials.arn}:GOOGLE_CLIENT_SECRET::"
+        },
+        {
+          name      = "SLACK_CLIENT_ID_OAUTH"
+          valueFrom = "${aws_secretsmanager_secret.oauth-credentials.arn}:SLACK_CLIENT_ID_OAUTH::"
+        },
+        {
+          name      = "SLACK_CLIENT_SECRET_OAUTH"
+          valueFrom = "${aws_secretsmanager_secret.oauth-credentials.arn}:SLACK_CLIENT_SECRET_OAUTH::"
         }
       ]
       logConfiguration = {

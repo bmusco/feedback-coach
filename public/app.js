@@ -7,6 +7,46 @@ let currentOutput = '';
 let currentBubble = null;
 let thinkingText = '';
 let thinkingEl = null;
+let integrationStatus = {};
+
+function getConfiguredApiBase() {
+  const explicitApiBase = window.FEEDBACK_COACH_API_BASE;
+  if (explicitApiBase) {
+    return explicitApiBase.replace(/\/$/, '');
+  }
+  return '';
+}
+
+const API_BASE = getConfiguredApiBase();
+
+function apiFetch(path, options = {}) {
+  return fetch(`${API_BASE}${path}`, {
+    credentials: 'include',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+}
+
+async function parseApiJson(resp) {
+  const text = await resp.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    const trimmed = text.trim();
+    const detail = trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')
+      ? `Backend returned HTML (${resp.status})`
+      : (trimmed || `Unexpected response (${resp.status})`);
+    throw new Error(detail);
+  }
+  if (!resp.ok && data && !data.error) {
+    data.error = `Request failed (${resp.status})`;
+  }
+  return data;
+}
 
 function getConfiguredWsBase() {
   const explicitWsBase = window.FEEDBACK_COACH_WS_BASE;
@@ -66,6 +106,7 @@ function handleMessage(msg) {
         // Store history for resume
         window._pendingHistory = msg.history;
       }
+      refreshIntegrationStatus();
       break;
 
     case 'chat-start':
@@ -520,11 +561,234 @@ function clearFromWelcome() {
   $resumeBtn.classList.add('hidden');
 }
 
+function setIntegrationBadge(id, connected, text) {
+  const badgeIds = [`modal-badge-${id}`];
+  for (const badgeId of badgeIds) {
+    const badge = document.getElementById(badgeId);
+    if (!badge) continue;
+    badge.textContent = text || (connected ? 'Connected' : 'Not Connected');
+    badge.className = `integration-badge ${connected ? 'connected' : 'disconnected'}`;
+  }
+}
+
+function setIntegrationDot(id, state) {
+  const dot = document.getElementById(`dot-${id}`);
+  if (!dot) return;
+  dot.className = `integration-dot ${state}`;
+}
+
+function updateIntegrationSummary() {
+  const summary = document.getElementById('integration-summary-count');
+  if (!summary) return;
+  const states = [
+    !!integrationStatus['google-workspace'],
+    !!integrationStatus.slack,
+    !!integrationStatus.atlassian,
+  ];
+  const connected = states.filter(Boolean).length;
+  summary.textContent = `${connected} of 3 connected`;
+}
+
+function setIntegrationMessage(id, text, kind = '') {
+  const el = document.getElementById(`status-${id}`);
+  if (!el) return;
+  el.textContent = text || '';
+  el.className = `integration-status-msg${kind ? ` ${kind}` : ''}`;
+}
+
+async function refreshIntegrationStatus() {
+  ['google-workspace', 'slack', 'atlassian'].forEach((id) => {
+    const modalBadge = document.getElementById(`modal-badge-${id}`);
+    [modalBadge].forEach((node) => {
+      if (!node) return;
+      node.textContent = 'Checking...';
+      node.className = 'integration-badge checking';
+    });
+    setIntegrationDot(id, 'checking');
+  });
+
+  try {
+    const resp = await apiFetch('/api/integrations/status');
+    const data = await parseApiJson(resp);
+    if (!data.ok) throw new Error(data.error || 'Unable to load integration status');
+    integrationStatus = data.status || {};
+
+    setIntegrationBadge('google-workspace', !!integrationStatus['google-workspace']);
+    setIntegrationBadge('slack', !!integrationStatus.slack);
+    setIntegrationBadge('atlassian', !!integrationStatus.atlassian);
+    setIntegrationDot('google-workspace', integrationStatus['google-workspace'] ? 'connected' : 'disconnected');
+    setIntegrationDot('slack', integrationStatus.slack ? 'connected' : 'disconnected');
+    setIntegrationDot('atlassian', integrationStatus.atlassian ? 'connected' : 'disconnected');
+    updateIntegrationSummary();
+
+    const googleBtn = document.getElementById('connect-btn-google-workspace');
+    const slackBtn = document.getElementById('connect-btn-slack');
+    if (googleBtn) googleBtn.textContent = integrationStatus['google-workspace'] ? 'Reconnect Google' : 'Connect Google Account';
+    if (slackBtn) slackBtn.textContent = integrationStatus.slack ? 'Reconnect Slack' : 'Connect Slack';
+
+    if (integrationStatus.atlassian) {
+      setIntegrationMessage('atlassian', 'Saved and verified.', 'ok');
+    } else {
+      setIntegrationMessage('atlassian', '');
+    }
+  } catch {
+    ['google-workspace', 'slack', 'atlassian'].forEach((id) => {
+      const modalBadge = document.getElementById(`modal-badge-${id}`);
+      [modalBadge].forEach((node) => {
+        if (!node) return;
+        node.textContent = 'Error';
+        node.className = 'integration-badge disconnected';
+      });
+      setIntegrationDot(id, 'disconnected');
+    });
+    const summary = document.getElementById('integration-summary-count');
+    if (summary) summary.textContent = 'Unable to load connection status';
+  }
+}
+
+async function connectIntegration(serverId, shortName) {
+  const btn = document.getElementById(`connect-btn-${serverId}`);
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
+  setIntegrationBadge(serverId, false, 'Connecting...');
+  setIntegrationMessage(serverId, 'Opening sign-in...');
+
+  try {
+    const resp = await apiFetch(`/api/auth/${serverId}/start`);
+    const data = await parseApiJson(resp);
+    if (!data.ok || !data.authUrl) throw new Error(data.error || 'Failed to start sign-in');
+
+    const popup = window.open(data.authUrl, `oauth-${serverId}`, 'width=640,height=760,popup=yes');
+    const onMessage = (event) => {
+      if (event.data?.type === 'oauth-complete' && event.data?.provider === serverId) {
+        window.removeEventListener('message', onMessage);
+        btn.disabled = false;
+        btn.textContent = `Connect ${shortName}`;
+        if (event.data.ok) {
+          setIntegrationBadge(serverId, true);
+          setIntegrationMessage(serverId, `${shortName} connected.`, 'ok');
+          refreshIntegrationStatus();
+        } else {
+          setIntegrationBadge(serverId, false);
+          setIntegrationMessage(serverId, `${shortName} sign-in failed.`, 'err');
+        }
+      }
+    };
+    window.addEventListener('message', onMessage);
+
+    const poll = setInterval(() => {
+      if (popup && popup.closed) {
+        clearInterval(poll);
+        btn.disabled = false;
+        btn.textContent = `Connect ${shortName}`;
+        refreshIntegrationStatus();
+      }
+    }, 1000);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = `Connect ${shortName}`;
+    setIntegrationBadge(serverId, false);
+    const detail = /Backend returned HTML \(404\)/.test(err.message || '')
+      ? 'This API route is not deployed yet. Redeploy the feedback-coach API.'
+      : (err.message || 'Connection failed.');
+    setIntegrationMessage(serverId, detail, 'err');
+  }
+}
+
+async function saveAtlassianCredentials() {
+  const btn = document.getElementById('connect-btn-atlassian');
+  const email = document.getElementById('atlassian-email')?.value?.trim();
+  const token = document.getElementById('atlassian-token')?.value?.trim();
+  if (!email || !token) {
+    setIntegrationMessage('atlassian', 'Enter both email and API token.', 'err');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  setIntegrationBadge('atlassian', false, 'Checking...');
+  setIntegrationMessage('atlassian', 'Saving and validating credentials...');
+
+  try {
+    const resp = await apiFetch('/api/integrations/atlassian/credentials', {
+      method: 'POST',
+      body: JSON.stringify({ email, token }),
+    });
+    const data = await parseApiJson(resp);
+    if (!data.ok) throw new Error(data.error || 'Failed to save credentials');
+
+    setIntegrationBadge('atlassian', true);
+    setIntegrationMessage('atlassian', 'Atlassian connected.', 'ok');
+    document.getElementById('atlassian-token').value = '';
+    refreshIntegrationStatus();
+  } catch (err) {
+    setIntegrationBadge('atlassian', false);
+    setIntegrationMessage('atlassian', err.message || 'Failed to save credentials.', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Atlassian Credentials';
+  }
+}
+
+async function validateIntegration(provider) {
+  const btn = document.getElementById(`validate-btn-${provider}`);
+  const labels = {
+    'google-workspace': 'Google',
+    slack: 'Slack',
+    atlassian: 'Atlassian',
+  };
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+  }
+  setIntegrationMessage(provider, 'Validating connected identity...');
+
+  try {
+    const resp = await apiFetch(`/api/integrations/validate/${provider}`);
+    const data = await parseApiJson(resp);
+    if (!data.ok) throw new Error(data.error || 'Validation failed');
+
+    let summary = `${labels[provider]} validated.`;
+    if (provider === 'google-workspace') {
+      summary = [data.name, data.email].filter(Boolean).join(' · ') || summary;
+    } else if (provider === 'slack') {
+      summary = [data.user, data.team].filter(Boolean).join(' · ') || summary;
+    } else if (provider === 'atlassian') {
+      summary = [data.name, data.email].filter(Boolean).join(' · ') || summary;
+    }
+    setIntegrationMessage(provider, summary, 'ok');
+  } catch (err) {
+    setIntegrationMessage(provider, err.message || 'Validation failed.', 'err');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Validate';
+    }
+  }
+}
+
 window.clearFromWelcome = clearFromWelcome;
 window.clearSession = clearSession;
 window.newSession = newSession;
 window.sendMessage = sendMessage;
 window.stopGeneration = stopGeneration;
+window.connectIntegration = connectIntegration;
+window.saveAtlassianCredentials = saveAtlassianCredentials;
+window.validateIntegration = validateIntegration;
+window.refreshIntegrationStatus = refreshIntegrationStatus;
+
+function openIntegrationsModal() {
+  document.getElementById('integrations-modal')?.classList.remove('hidden');
+}
+
+function closeIntegrationsModal(event) {
+  if (event && event.target && event.target !== event.currentTarget) return;
+  document.getElementById('integrations-modal')?.classList.add('hidden');
+}
+
+window.openIntegrationsModal = openIntegrationsModal;
+window.closeIntegrationsModal = closeIntegrationsModal;
 
 // ── Init ──────────────────────────────────────────────────
 marked.setOptions({
@@ -535,3 +799,4 @@ marked.setOptions({
 });
 
 connect();
+refreshIntegrationStatus();
