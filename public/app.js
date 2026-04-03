@@ -8,6 +8,7 @@ let currentBubble = null;
 let thinkingText = '';
 let thinkingEl = null;
 let integrationStatus = {};
+let accessStatus = { allowed: true };
 
 function getConfiguredApiBase() {
   const explicitApiBase = window.FEEDBACK_COACH_API_BASE;
@@ -80,6 +81,13 @@ const $toolLabel = document.getElementById('tool-label');
 const $sessionBadge = document.getElementById('session-badge');
 const $headerStatus = document.getElementById('header-status');
 const $resumeBtn = document.getElementById('resume-btn');
+const $accessNotice = document.getElementById('access-notice');
+const $accessNoticeTitle = document.getElementById('access-notice-title');
+const $accessNoticeMessage = document.getElementById('access-notice-message');
+const $accessNoticeBtn = document.getElementById('access-notice-btn');
+const $fullStartBtn = document.getElementById('start-full-btn');
+const $microCard = document.getElementById('card-micro');
+const $demoBtn = document.getElementById('demo-btn');
 
 // ── WebSocket ─────────────────────────────────────────────
 function connect() {
@@ -106,6 +114,7 @@ function handleMessage(msg) {
         // Store history for resume
         window._pendingHistory = msg.history;
       }
+      refreshAccessStatus();
       refreshIntegrationStatus();
       break;
 
@@ -190,6 +199,54 @@ function handleMessage(msg) {
       $messages.innerHTML = '';
       break;
   }
+}
+
+function setAccessStatus(next) {
+  accessStatus = next || { allowed: true };
+  applyAccessState();
+}
+
+function applyAccessState() {
+  const blocked = accessStatus && accessStatus.allowed === false;
+
+  if ($fullStartBtn) $fullStartBtn.disabled = blocked;
+  if ($microCard) {
+    $microCard.classList.toggle('mode-disabled', blocked);
+    $microCard.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+  }
+  if ($demoBtn) {
+    $demoBtn.disabled = blocked;
+    $demoBtn.classList.toggle('mode-disabled', blocked);
+  }
+
+  if (!$accessNotice || !$accessNoticeTitle || !$accessNoticeMessage || !$accessNoticeBtn) return;
+  if (!blocked) {
+    $accessNotice.classList.add('hidden');
+    $accessNoticeBtn.classList.add('hidden');
+    return;
+  }
+
+  $accessNotice.classList.remove('hidden');
+  $accessNoticeTitle.textContent = accessStatus.code === 'google_signin_required' ? 'Sign In Required' : 'Access Limited';
+  $accessNoticeMessage.textContent = accessStatus.message || 'This pilot is currently limited.';
+  $accessNoticeBtn.classList.toggle('hidden', accessStatus.code !== 'google_signin_required');
+}
+
+async function refreshAccessStatus() {
+  try {
+    const resp = await apiFetch('/api/access-status');
+    const data = await parseApiJson(resp);
+    if (data.ok && data.access) setAccessStatus(data.access);
+  } catch {
+    setAccessStatus({ allowed: true });
+  }
+}
+
+function ensureAllowedAccess() {
+  if (!accessStatus || accessStatus.allowed !== false) return true;
+  applyAccessState();
+  if (accessStatus.code === 'google_signin_required') openIntegrationsModal();
+  return false;
 }
 
 // ── Chat UI ───────────────────────────────────────────────
@@ -455,6 +512,7 @@ document.querySelectorAll('.period-btn').forEach(btn => {
 });
 
 function startFull() {
+  if (!ensureAllowedAccess()) return;
   currentMode = 'full';
   let period = currentPeriod;
   if (period === 'custom') {
@@ -469,6 +527,7 @@ function startFull() {
 }
 
 function startMicro() {
+  if (!ensureAllowedAccess()) return;
   currentMode = 'micro';
   $sessionBadge.textContent = 'Micro Check';
   switchToChat();
@@ -476,6 +535,7 @@ function startMicro() {
 }
 
 function startDemo() {
+  if (!ensureAllowedAccess()) return;
   currentMode = 'demo';
   $sessionBadge.textContent = 'Demo Session';
   switchToChat();
@@ -612,6 +672,7 @@ async function refreshIntegrationStatus() {
     const data = await parseApiJson(resp);
     if (!data.ok) throw new Error(data.error || 'Unable to load integration status');
     integrationStatus = data.status || {};
+    if (data.access) setAccessStatus(data.access);
 
     setIntegrationBadge('google-workspace', !!integrationStatus['google-workspace']);
     setIntegrationBadge('slack', !!integrationStatus.slack);
@@ -668,6 +729,7 @@ async function connectIntegration(serverId, shortName) {
         if (event.data.ok) {
           setIntegrationBadge(serverId, true);
           setIntegrationMessage(serverId, `${shortName} connected.`, 'ok');
+          refreshAccessStatus();
           refreshIntegrationStatus();
         } else {
           setIntegrationBadge(serverId, false);
@@ -682,6 +744,7 @@ async function connectIntegration(serverId, shortName) {
         clearInterval(poll);
         btn.disabled = false;
         btn.textContent = `Connect ${shortName}`;
+        refreshAccessStatus();
         refreshIntegrationStatus();
       }
     }, 1000);
@@ -693,6 +756,7 @@ async function connectIntegration(serverId, shortName) {
       ? 'This API route is not deployed yet. Redeploy the feedback-coach API.'
       : (err.message || 'Connection failed.');
     setIntegrationMessage(serverId, detail, 'err');
+    refreshAccessStatus();
   }
 }
 
@@ -799,4 +863,5 @@ marked.setOptions({
 });
 
 connect();
+refreshAccessStatus();
 refreshIntegrationStatus();

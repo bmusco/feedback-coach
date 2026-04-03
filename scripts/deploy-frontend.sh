@@ -43,9 +43,17 @@ fi
 
 DIST_DIR="$(mktemp -d)"
 cp -r public/. "${DIST_DIR}/"
+ASSET_VERSION="$(git rev-parse --short HEAD 2>/dev/null || date +%s)"
 
 log "Injecting frontend runtime config..."
 sed -i.bak "s|</head>|<script>window.FEEDBACK_COACH_API_BASE='${API_BASE}';window.FEEDBACK_COACH_WS_BASE='${WS_BASE}';</script></head>|" "${DIST_DIR}/index.html"
+rm -f "${DIST_DIR}/index.html.bak"
+
+log "Versioning frontend asset references..."
+sed -i.bak \
+  -e "s|href=\"style.css\"|href=\"style.css?v=${ASSET_VERSION}\"|g" \
+  -e "s|src=\"app.js\"|src=\"app.js?v=${ASSET_VERSION}\"|g" \
+  "${DIST_DIR}/index.html"
 rm -f "${DIST_DIR}/index.html.bak"
 
 log "Syncing static assets to ${S3_DEST}..."

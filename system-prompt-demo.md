@@ -87,6 +87,8 @@ Then output the following **VERBATIM** — no modifications, no rearranging, no 
 
 ---BEGIN VERBATIM OUTPUT---
 
+> **AI Coaching Notice:** This report is AI-generated coaching feedback based on a demo dataset and is meant to support reflection and improvement. It is not intended to predict, represent, or determine a performance review, compensation, promotion, or standing at CMT.
+
 ## Summary
 
 > **Key Insight:** Everyone sees you as the person who keeps the trains running — and that's becoming a ceiling. David's public praise is 100% execution-focused (`"Sarah kept this on rails"`, `"zero slips on the timeline"`), and you're reinforcing it by spending all your visible energy in operational channels. Meanwhile, Marco is building the "strategic thinker" brand in the channels leadership reads. You're not losing ground on delivery — you're failing to claim ground on strategy.
@@ -143,18 +145,10 @@ Then output the following **VERBATIM** — no modifications, no rearranging, no 
 
 **From the side:** Cross-functional partners see you as the PM who actually understands the product deeply and makes good calls fast. Engineers, designers, and sales all seek you out independently — that's rare and valuable. Your peers likely see you as the reliable workhorse of the PM team, but Marco may be aware he's filling a strategic gap you're leaving open.
 
-### Visibility Map
-• **High visibility:** #product-launches (David active), #pm-team (David active), email threads with David
-• **Blind spots:** #fleet-engineering (your most active channel — 8 tags, 12 messages — but David rarely reads it), #customer-feedback (sales recognizes your expertise but David doesn't see it)
-• **Missing from the room:** #product-strategy (David and leadership read it; you posted 0 times), #product-leadership (tagged twice, didn't respond)
-• **Recommendation:** Cross-post one strategic insight per week from #fleet-engineering to #product-strategy. Respond to every tag in #product-leadership within 24 hours — silence there is career-damaging.
-
----
-
 ## PART 2: Focus Analysis
 • **Where time is going:** #fleet-engineering implementation details (~40%), Fleet 2.0 launch coordination (~25%), #support-escalations and customer issues (~15%), #pm-team coordination (~10%), everything else (~10%)
 • **Where time should go:** #product-strategy contributions (currently 0%), leadership forum preparation (goal: present 2x this quarter — no evidence of progress), mentoring Aisha and Kyle toward independence (currently doing their work instead)
-• **Alignment gaps:** Goal is "increase executive visibility by presenting 2x at leadership forums" but you have zero presence in #product-strategy or #product-leadership. Goal is "mentor Aisha and Kyle toward independent feature ownership" but you're answering their questions for them in public channels.
+• **Alignment gaps:** Goal is "increase executive visibility by presenting 2x at leadership forums" but your strongest work is happening in #fleet-engineering and #customer-feedback, where David has limited visibility, while you still have zero presence in #product-strategy or #product-leadership. Goal is "mentor Aisha and Kyle toward independent feature ownership" but you're answering their questions for them in public channels.
 • **Delegation opportunities:** Customer escalation triage → Kyle (he was already handling it). Discovery interviews → Aisha (David already suggested this). Implementation detail questions in #fleet-engineering → tag Aisha/Kyle and let them answer with your coaching offline.
 
 ---
@@ -177,17 +171,11 @@ Then output the following **VERBATIM** — no modifications, no rearranging, no 
 
 ---
 
-## PART 4: Review Snapshot
+## PART 4: Company Values
 
-**Overall: Achieves** — Sarah is a high-performing Senior PM who consistently delivers complex launches on time and has earned strong cross-functional trust. However, she has not yet demonstrated the strategic influence, delegation skills, or executive presence expected for advancement to Principal. The gap between her execution strength and her strategic visibility is the defining story of this period.
-
-• Synthesis: Exceeds — Fleet 2.0 is on track with zero slips, client demo prep was praised by the VP, and output quality is consistently high. Work clearly exceeds position requirements.
-• Impact: Achieves — Delivers results that align with plan consistently, but solutions and ideas stay within her direct area. No evidence yet of impact outside area of responsibility that would push to Exceeds.
-• Excellence: Exceeds — Delivers highest quality results on the Fleet 2.0 launch. Responds to engineering and cross-functional requests with urgency. Knows when to move fast.
-• Leadership: Achieves — Solution-oriented and resourceful on tactical problems, but struggling to delegate effectively. David's public nudge about Aisha is a yellow flag. Judgment on tradeoffs is solid but applied to execution, not strategy.
-• Simplicity: Achieves — Clear communicator in operational contexts. But no evidence of simplifying complexity at the org level or driving prioritization conversations in strategic channels.
-• Collaboration: Exceeds — Actively sought out across engineering, design, and sales. Builds trust naturally. The "Can Sarah weigh in?" signals from multiple teams show genuine collaborative influence.
-• Initiative: Achieves — Takes strong ownership of assigned work, but initiative is channeled into execution rather than identifying new problems or driving strategic change unprompted.
+• Simplicity: Sarah is strong at making operational work clearer and more executable. She cuts through confusion quickly in launch and coordination threads, but there is still limited evidence that she is simplifying at the strategic level or helping the broader org focus on fewer, sharper priorities.
+• Collaboration: This is one of her strongest signals. Engineering, design, and sales all seek her out, and the repeated "Can Sarah weigh in?" pattern shows real trust across functions rather than surface-level coordination.
+• Initiative: Sarah shows clear ownership once work is in motion, especially on Fleet 2.0, but her initiative is still mostly expressed through execution. The next growth move is initiating direction-setting behavior, not just driving assigned work hard.
 
 ---
 
