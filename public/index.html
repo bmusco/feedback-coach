@@ -14,6 +14,30 @@
   <!-- Welcome Screen -->
   <div id="welcome" class="view welcome">
     <div class="welcome-inner">
+      <section class="integrations-panel" aria-labelledby="integrations-title">
+        <div class="integrations-panel-head">
+          <div>
+            <h2 id="integrations-title">Connections</h2>
+            <p>Optional data sources for deeper coaching context.</p>
+          </div>
+          <div class="integrations-panel-actions">
+            <button class="open-integrations-btn" onclick="openIntegrationsModal()">Manage</button>
+          </div>
+        </div>
+
+        <div class="integration-summary-bar">
+          <div class="integration-summary-copy">
+            <span class="integration-summary-count" id="integration-summary-count">Checking connections...</span>
+            <span class="integration-summary-subtext">Google, Slack, and Atlassian.</span>
+          </div>
+          <div class="integration-summary-dots" aria-label="Integration status summary">
+            <span class="integration-dot checking" id="dot-google-workspace" title="Google Workspace"></span>
+            <span class="integration-dot checking" id="dot-slack" title="Slack"></span>
+            <span class="integration-dot checking" id="dot-atlassian" title="Atlassian"></span>
+          </div>
+        </div>
+      </section>
+
       <div class="welcome-logo">
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
           <circle cx="24" cy="24" r="20" stroke="#1a73e8" stroke-width="2"/>
@@ -128,6 +152,72 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
       <button class="stop-btn hidden" id="stop-btn" onclick="stopGeneration()">Stop</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="integrations-modal" onclick="closeIntegrationsModal(event)">
+    <div class="modal-card integrations-modal-card" role="dialog" aria-modal="true" aria-labelledby="integrations-modal-title" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h2 id="integrations-modal-title">Manage Connections</h2>
+          <p>Connect the same services the internal assistant uses, without taking over the whole welcome screen.</p>
+        </div>
+        <button class="modal-close-btn" onclick="closeIntegrationsModal()" aria-label="Close integrations modal">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l10 10M13 3L3 13"/></svg>
+        </button>
+      </div>
+
+      <div class="integration-grid integration-grid-modal">
+        <div class="integration-card">
+          <div class="integration-card-top">
+            <div>
+              <h3>Google Workspace</h3>
+              <p>Gmail, Calendar, Drive, Docs, Slides, and Tasks.</p>
+            </div>
+            <span class="integration-badge checking" id="modal-badge-google-workspace">Checking...</span>
+          </div>
+          <div class="integration-card-buttons">
+            <button class="integration-action-btn" id="connect-btn-google-workspace" onclick="connectIntegration('google-workspace', 'Google')">Connect Google Account</button>
+            <button class="integration-secondary-btn" id="validate-btn-google-workspace" onclick="validateIntegration('google-workspace')">Validate</button>
+          </div>
+          <div class="integration-status-msg" id="status-google-workspace"></div>
+        </div>
+
+        <div class="integration-card">
+          <div class="integration-card-top">
+            <div>
+              <h3>Slack</h3>
+              <p>Search messages, scan channels, and inspect threads from your own account.</p>
+            </div>
+            <span class="integration-badge checking" id="modal-badge-slack">Checking...</span>
+          </div>
+          <div class="integration-card-buttons">
+            <button class="integration-action-btn" id="connect-btn-slack" onclick="connectIntegration('slack', 'Slack')">Connect Slack</button>
+            <button class="integration-secondary-btn" id="validate-btn-slack" onclick="validateIntegration('slack')">Validate</button>
+          </div>
+          <div class="integration-status-msg" id="status-slack"></div>
+        </div>
+
+        <div class="integration-card integration-card-atlassian">
+          <div class="integration-card-top">
+            <div>
+              <h3>Atlassian</h3>
+              <p>Use your Jira and Confluence access with an API token.</p>
+            </div>
+            <span class="integration-badge checking" id="modal-badge-atlassian">Checking...</span>
+          </div>
+          <p class="integration-help">Create a token at <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noreferrer">id.atlassian.com</a>, then save it here.</p>
+          <div class="integration-fields">
+            <input type="email" id="atlassian-email" placeholder="you@cmtelematics.com">
+            <input type="password" id="atlassian-token" placeholder="Atlassian API token">
+          </div>
+          <div class="integration-card-buttons">
+            <button class="integration-action-btn" id="connect-btn-atlassian" onclick="saveAtlassianCredentials()">Save Atlassian Credentials</button>
+            <button class="integration-secondary-btn" id="validate-btn-atlassian" onclick="validateIntegration('atlassian')">Validate</button>
+          </div>
+          <div class="integration-status-msg" id="status-atlassian"></div>
+        </div>
+      </div>
     </div>
   </div>
 

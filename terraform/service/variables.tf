@@ -90,6 +90,11 @@ variable "frontend-url" {
   type = string
 }
 
+variable "atlassian-site" {
+  type    = string
+  default = "https://cmtelematics.atlassian.net"
+}
+
 variable "subnet-role" {
   type    = string
   default = "internal-default"

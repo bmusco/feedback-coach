@@ -64,7 +64,9 @@ data "aws_iam_policy_document" "task-execution-policy" {
   statement {
     sid       = "GetSecrets"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.claude-config.arn]
+    resources = [
+      "arn:aws:secretsmanager:${var.region}:${var.aws-id}:secret:${var.token}/${var.service-name}/*"
+    ]
   }
 }
 
